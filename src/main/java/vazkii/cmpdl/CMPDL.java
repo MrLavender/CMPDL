@@ -348,14 +348,15 @@ public final class CMPDL {
 			if(redirectLocation == null)
 				break;
 			
-			// This gets parsed out later
-			redirectLocation = redirectLocation.replaceAll("\\%20", " ");
-
 			if(redirectLocation.startsWith("/"))
 				uri = new URI(uri.getScheme(), uri.getHost(), redirectLocation, uri.getFragment());
 			else {
-				url = new URL(redirectLocation);
-				uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
+				try {
+					uri = new URI(redirectLocation);
+				} catch (URISyntaxException e) {
+					url = new URL(redirectLocation);
+					uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
+				}
 			}
 		}
 
