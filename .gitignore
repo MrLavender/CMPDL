@@ -1,0 +1,9 @@
+# OSX
+.DS_Store
+
+# Gradle
+.gradle
+/build/
+
+# Netbeans
+.nb-gradle/
