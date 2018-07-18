@@ -302,7 +302,7 @@ public final class CMPDL {
 		if(!m.matches())
 			throw new IllegalArgumentException("Mod file doesn't match filename pattern");
 
-		String filename = m.group(1);
+		String filename = m.group(1).replace("+", "%2B");
 		filename = URLDecoder.decode(filename, "UTF-8");
 
 		Interface.setStatus2("Downloading");
