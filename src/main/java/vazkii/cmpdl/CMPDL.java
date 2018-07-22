@@ -72,22 +72,25 @@ public final class CMPDL {
 		log("Input Version: " + version);
 		Interface.setStatus("Starting up");
 
-		String packUrl = url;
-		if(packUrl.endsWith("/"))
-			packUrl = packUrl.replaceAll(".$", "");
+		String finalUrl = url;
+		if (!url.startsWith("file:")) {
+			String packUrl = url;
+			if(packUrl.endsWith("/"))
+				packUrl = packUrl.replaceAll(".$", "");
 
-		String packVersion = version;
-		if(version == null || version.isEmpty())
-			packVersion = "latest";
+			String packVersion = version;
+			if(version == null || version.isEmpty())
+				packVersion = "latest";
 
-		String fileUrl;
-		if (packVersion.equals("latest"))
-			fileUrl = packUrl + "/files/latest";
-		else
-			fileUrl = packUrl + "/files/" + packVersion + "/download";
+			String fileUrl;
+			if (packVersion.equals("latest"))
+				fileUrl = packUrl + "/files/latest";
+			else
+				fileUrl = packUrl + "/files/" + packVersion + "/download";
 
-		String finalUrl = getLocationHeader(fileUrl);
-		log("File URL: " + fileUrl);
+			finalUrl = getLocationHeader(fileUrl);
+			log("File URL: " + fileUrl);
+		}
 		log("Final URL: " + finalUrl);
 		log("");
 
