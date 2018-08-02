@@ -17,3 +17,7 @@ dependencies {
     compile 'com.google.code.gson:gson:2.8.5'
     compile 'net.lingala.zip4j:zip4j:1.3.2'
 }
+
+tasks.withType(JavaExec) {
+    systemProperty 'cmpdl.dndDebug', 'true'
+}

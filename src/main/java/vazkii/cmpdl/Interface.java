@@ -3,12 +3,23 @@ package vazkii.cmpdl;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
@@ -17,11 +28,14 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.TransferHandler;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.text.DefaultCaret;
@@ -194,6 +208,11 @@ public class Interface {
 
 			setResizable(true);
 			setVisible(true);
+
+			DropHandler dropHandler = new DropHandler();
+			panel.setTransferHandler(dropHandler);
+			urlField.setTransferHandler(dropHandler);
+			logArea.setTransferHandler(dropHandler);
 		}
 
 		@Override
@@ -223,6 +242,133 @@ public class Interface {
 
 		@Override public void keyPressed(KeyEvent e) {	}
 		@Override public void keyReleased(KeyEvent e) { }
+
+		private final class DropHandler extends TransferHandler {
+
+			private final boolean DND_DEBUG = Boolean.getBoolean("cmpdl.dndDebug");
+
+			private final DataFlavor DATAFLAVOR_URI_LIST = getUriListFlavor();
+
+			private DataFlavor getUriListFlavor() {
+				try {
+					return new DataFlavor("text/uri-list;class=java.lang.String");
+				} catch (ClassNotFoundException e) {
+				}
+				return null;
+			}
+
+			@Override
+			public boolean canImport(TransferHandler.TransferSupport support) {
+				return support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)
+					|| support.isDataFlavorSupported(DataFlavor.stringFlavor)
+					|| support.isDataFlavorSupported(DATAFLAVOR_URI_LIST)
+					|| DND_DEBUG;
+			}
+
+			@Override
+			public boolean importData(TransferHandler.TransferSupport support) {
+				Transferable t = support.getTransferable();
+				if (DND_DEBUG) {
+					printDataFlavors(t);
+				}
+
+				String url = getDroppedItem(t);
+				if (url != null) {
+					urlField.setText(url);
+					versionField.setText("latest");
+					return true;
+				}
+
+				String msg = "Drop or paste a modpack URL or local zip file";
+				SwingUtilities.invokeLater(() -> {
+					frame.setAlwaysOnTop(true);
+					JOptionPane.showMessageDialog(frame, msg, "Error", JOptionPane.ERROR_MESSAGE);
+					frame.setAlwaysOnTop(false);
+				});
+				return false;
+			}
+
+			private String getDroppedItem(Transferable t) {
+				List<Function<Transferable, String>> dataGetters = Arrays.asList(
+					this::getFileListData, this::getStringData, this::getUriListData
+				);
+
+				for (Function<Transferable, String> dataGetter : dataGetters) {
+					String data = dataGetter.apply(t);
+					if (data != null) {
+						for (String item : data.split("\\r?\\n")) {
+							if ((item = validateDroppedItem(item)) != null) {
+								return item;
+							}
+						}
+					}
+				}
+				return null;
+			}
+
+			private String validateDroppedItem(String item) {
+				item = item.trim();
+				try {
+					URL url = new URL(item);
+					if (!url.getProtocol().equals("file") || item.endsWith(".zip")) {
+						return url.toString();
+					}
+				} catch (MalformedURLException e) {
+					if (item.endsWith(".zip")) {
+						return "file://" + item;
+					}
+				}
+				return null;
+			}
+
+			private String getFileListData(Transferable t) {
+				if (t.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+					try {
+						List<?> data = (List<?>) t.getTransferData(DataFlavor.javaFileListFlavor);
+						return data.stream().map(Object::toString).collect(Collectors.joining("\n"));
+					} catch (UnsupportedFlavorException | IOException e) {
+					}
+				}
+				return null;
+			}
+
+			private String getStringData(Transferable t) {
+				if (t.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+					try {
+						return (String) t.getTransferData(DataFlavor.stringFlavor);
+					} catch (UnsupportedFlavorException | IOException e) {
+					}
+				}
+				return null;
+			}
+
+			private String getUriListData(Transferable t) {
+				if (t.isDataFlavorSupported(DATAFLAVOR_URI_LIST)) {
+					try {
+						return (String) t.getTransferData(DATAFLAVOR_URI_LIST);
+					} catch (UnsupportedFlavorException | IOException e) {
+					}
+				}
+				return null;
+			}
+
+			private void printDataFlavors(Transferable t) {
+				for (DataFlavor flavor : t.getTransferDataFlavors()) {
+					System.out.println(flavor);
+				}
+				System.out.println("-----------------------------------------");
+				System.out.println("FILE LIST");
+				System.out.println(getFileListData(t));
+				System.out.println("-----------------------------------------");
+				System.out.println("STRING");
+				System.out.println(getStringData(t));
+				System.out.println("-----------------------------------------");
+				System.out.println("URI LIST");
+				System.out.println(getUriListData(t));
+				System.out.println("-----------------------------------------");
+				System.out.println("-----------------------------------------");
+			}
+		}
 	}
 
 }
