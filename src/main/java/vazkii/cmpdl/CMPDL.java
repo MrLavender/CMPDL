@@ -4,7 +4,6 @@ import java.awt.Desktop;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -17,6 +16,7 @@ import java.net.URLDecoder;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -367,15 +367,8 @@ public final class CMPDL {
 	}
 
 	public static void downloadFileFromURL(File f, URL url) throws IOException, FileNotFoundException {
-		if(!f.exists())
-			f.createNewFile();
-
-		try(InputStream instream = url.openStream(); FileOutputStream outStream = new FileOutputStream(f)) {
-			byte[] buff = new byte[4096];
-
-			int i;
-			while((i = instream.read(buff)) > 0)
-				outStream.write(buff, 0, i);
+		try (InputStream is = url.openStream()) {
+			Files.copy(is, f.toPath(), StandardCopyOption.REPLACE_EXISTING);
 		}
 	}
 
